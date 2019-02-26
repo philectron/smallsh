@@ -1,17 +1,18 @@
 CC = gcc
-CFLAGS = -std=c11 -lpthread -I. -g -Wall -Wextra
+CFLAGS = -std=c11 -lpthread -g -Wall -Wextra
 
-ALL = smallsh
+SRC = $(wildcard *.c)
+HDR = $(wildcard *.h)
+OBJ = $(patsubst %.c, %.o, $(SRC))
+EXE = smallsh
 
-all: $(ALL)
-
-%.o: %.c
+%.o: %.c $(HDR)
 	$(CC) -c $(CFLAGS) $< -o $@
 
-smallsh: smallsh.c
-	$(CC) $(CFLAGS) $? -o $@
+$(EXE): $(OBJ)
+	$(CC) $(CFLAGS) $^ -o $@
 
 .PHONY: clean
 
 clean:
-	rm -f *.o $(ALL)
+	rm -f *.o $(EXE)
