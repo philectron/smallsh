@@ -21,7 +21,7 @@ typedef struct DynStrArr {
 
 void InitDynStrArr(DynStrArr* arr, int capacity);
 
-void DoubleDynStrArrCapacity(DynStrArr* arr);
+/* void DoubleDynStrArrCapacity(DynStrArr* arr); */
 
 void PushBackDynStrArr(DynStrArr* arr, char* new_string);
 

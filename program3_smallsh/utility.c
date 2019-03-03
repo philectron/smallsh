@@ -34,6 +34,7 @@ void InitDynStrArr(DynStrArr* arr, int capacity) {
     arr->capacity = capacity;
 }
 
+/*
 // Doubles the capacity of a dynamic array of strings.
 //
 // Argument:
@@ -68,6 +69,7 @@ void DoubleDynStrArrCapacity(DynStrArr* arr) {
     // update capacity
     arr->capacity *= 2;
 }
+*/
 
 // Pushes a string to the back of the dynamic array (double the capacity if
 // needed).
@@ -82,7 +84,12 @@ void PushBackDynStrArr(DynStrArr* arr, char* new_string) {
     assert(arr && arr->strings && new_string);
 
     // before adding, must double the capacity if array is full
-    if (arr->size == arr->capacity) DoubleDynStrArrCapacity(arr);
+    /* if (arr->size == arr->capacity) DoubleDynStrArrCapacity(arr); */
+    if (arr->size == arr->capacity) {
+        arr->strings = realloc(arr->strings, arr->capacity * 2 *
+                               sizeof(*(arr->strings)));
+        arr->capacity *= 2;
+    }
 
     // allocate memory and copy the new string to the back of the array
     arr->strings[arr->size] = malloc((strlen(new_string) + 1) *
@@ -101,7 +108,12 @@ void PushBackNullDynStrArr(DynStrArr* arr) {
     assert(arr);
 
     // before adding, must double the capacity if the array is full
-    if (arr->size == arr->capacity) DoubleDynStrArrCapacity(arr);
+    /* if (arr->size == arr->capacity) DoubleDynStrArrCapacity(arr); */
+    if (arr->size == arr->capacity) {
+        arr->strings = realloc(arr->strings, arr->capacity * 2 *
+                               sizeof(*(arr->strings)));
+        arr->capacity *= 2;
+    }
 
     // no need to allocate memory, this signals the end of the array
     arr->strings[arr->size++] = NULL;
