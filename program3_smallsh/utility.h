@@ -36,6 +36,7 @@ void DeleteDynStrArr(DynStrArr* arr);
 
 void InitDynPidArr(DynPidArr* arr, int capacity);
 void PushBackDynPidArr(DynPidArr* arr, pid_t new_pid);
+pid_t* PopBackDynPidArr(DynPidArr* arr);
 void DeleteDynPidArr(DynPidArr* arr);
 
 #endif  // #ifndef UTILITY_H_

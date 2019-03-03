@@ -142,6 +142,24 @@ void PushBackDynPidArr(DynPidArr* arr, pid_t new_pid) {
     arr->pids[arr->size++] = new_pid;
 }
 
+// Pops the PID at the back of the dynamic array. Returns a pointer to the value
+// of the PID and removes the PID from the array.
+//
+// Argument:
+//   arr  the structure of dynamic array of PIDs
+//
+// Returns:
+//   A pointer to the PID of the latest children (the back of the array)
+pid_t* PopBackDynPidArr(DynPidArr* arr) {
+    assert(arr);
+
+    // if array is empty, return NULL
+    if (arr->size == 0) return NULL;
+
+    // otherwise, return the address of the last PID and update size
+    return &(arr->pids[--arr->size]);
+}
+
 // Deallocates the array of PIDs in the structure and resets the parameters.
 //
 // Argument:
