@@ -7,14 +7,15 @@
 // Program 3: Smallsh
 //
 // This module contains constants, parameters, and functions related to
-// prompting user's input commands and parsing them into smallsh.
+// prompting user's input commands, parsing them into smallsh, and interpret
+// them.
 
 #include "parser.h"
 #include "builtins.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
+#include <assert.h>
 
 // TODO
 char* PromptUser(void) {
@@ -42,14 +43,8 @@ DynStrArr* ParseCmdLine(char* cmdline) {
     assert(cmdline && cmdline[0] != '\0');
 
     // a parsed command line will be split by space and put into an array
-    DynStrArr* cmd_args = InitDynStrArr(10);
-
-    for (int i = 0; i < cmd_args->capacity; i++) {
-        // to guarantee memory for each word, allocate max size for each
-        cmd_args->strings[i] = malloc(MAX_CMDLINE_LEN *
-                                      sizeof(*(cmd_args->strings[i])));
-        assert(cmd_args->strings[i]);  // make sure allocation was successful
-    }
+    DynStrArr* cmd_args = malloc(sizeof(*cmd_args));
+    InitDynStrArr(cmd_args, INIT_CMDLINE_ARGS);
 
     // create a temporary copy of the command line used for splitting
     char cmdline_tmp[MAX_CMDLINE_LEN];
@@ -64,11 +59,25 @@ DynStrArr* ParseCmdLine(char* cmdline) {
         cmdline_tok = strtok(NULL, " ");
     }
 
-    /* if (cmd_args->size == cmd_args->capacity) DoubleDynStrArrCapacity(cmd_args); */
-    /* // free the last string before setting it NULL or else will leak the mem */
-    /* free(cmd_args->strings[cmd_args->size]); */
-    /* // push a NULL at the end of parsed array */
-    /* cmd_args->strings[cmd_args->size++] = NULL; */
+    // push a NULL at the end of parsed array, signaling the end of cmd
+    PushBackNullDynStrArr(cmd_args);
 
     return cmd_args;
+}
+
+void RunCmd(DynStrArr* cmdline) {
+    assert(cmdline && cmdline->size >= 2);
+
+    char* cmd = cmdline->strings[0];
+
+    // check for built-in commands
+    if (strcmp(cmd, "exit") == 0) {
+        Exit();
+    } else if (strcmp(cmd, "status") == 0) {
+        Status();
+    } else if (strcmp(cmd, "cd") == 0) {
+        Cd(cmdline->strings[1]);
+    } else {
+        printf("Non-builtin functions\n");
+    }
 }

@@ -11,10 +11,9 @@
 // They are essentially the "helpers" of the program.
 
 #include "utility.h"
-#include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
+#include <assert.h>
 
 // Dynamically allocates an array of strings structure with the given capacity.
 //
@@ -23,12 +22,8 @@
 //
 // Returns:
 //   A newly allocated structure of dynamic array of strings
-DynStrArr* InitDynStrArr(int capacity) {
-    assert(capacity > 0);
-
-    // allocate dynamic memory for the structure
-    DynStrArr* arr = malloc(sizeof(*arr));
-    assert(arr);  // make sure allocation was successful
+void InitDynStrArr(DynStrArr* arr, int capacity) {
+    assert(arr && capacity > 0);
 
     // allocate dynamic memory for the array
     arr->strings = malloc(capacity * sizeof(*(arr->strings)));
@@ -37,8 +32,6 @@ DynStrArr* InitDynStrArr(int capacity) {
     // init the array's size and capacity
     arr->size = 0;
     arr->capacity = capacity;
-
-    return arr;
 }
 
 // Doubles the capacity of a dynamic array of strings.
@@ -52,18 +45,27 @@ void DoubleDynStrArrCapacity(DynStrArr* arr) {
 
     // init a new array of strings with double the capacity
     char** new_strings = malloc(arr->capacity * 2 * sizeof(*new_strings));
-    assert(new_strings);  // make sure allocation was successful
+    assert(new_strings);
 
-    // move all strings to the new array
-    for (int i = 0; i < arr->size; i++)
-        // no need to copy the strings since they're all pointers
-        new_strings[i] = arr->strings[i];
+    // add all strings to the new array and deallocate the old
+    for (int i = 0; i < arr->size; i++) {
+        // in case of stumbling upon a NULL element
+        if (!arr->strings[i]) {
+            // fail-safe, as NULL will always be put at the end of the array
+            new_strings[i] = NULL;
+        } else {
+            new_strings[i] = malloc((strlen(arr->strings[i]) + 1) *
+                                     sizeof(*(new_strings[i])));
+            strcpy(new_strings[i], arr->strings[i]);
+            free(arr->strings[i]);
+        }
+    }
 
-    // destroy the old array and set pointer to the new one
+    // destroy the old array of strings
     free(arr->strings);
     arr->strings = new_strings;
 
-    // update the capacity
+    // update capacity
     arr->capacity *= 2;
 }
 
@@ -82,10 +84,36 @@ void PushBackDynStrArr(DynStrArr* arr, char* new_string) {
     // before adding, must double the capacity if array is full
     if (arr->size == arr->capacity) DoubleDynStrArrCapacity(arr);
 
-    // copy the new string to the back of the array
-    strcpy(arr->strings[arr->size++], new_string);
+    // allocate memory and copy the new string to the back of the array
+    arr->strings[arr->size] = malloc((strlen(new_string) + 1) *
+                                     sizeof(*(arr->strings[arr->size])));
+    assert(arr->strings[arr->size]);
+    strcpy(arr->strings[arr->size], new_string);
+    arr->size++;
 }
 
+// Special push: Pushes a  NULL  to the back of the array of strings.
+// This NULL element will be considered an element of the array.
+//
+// Argument:
+//   arr  the structure of dynamic array of strings
+void PushBackNullDynStrArr(DynStrArr* arr) {
+    assert(arr);
+
+    // before adding, must double the capacity if the array is full
+    if (arr->size == arr->capacity) DoubleDynStrArrCapacity(arr);
+
+    // no need to allocate memory, this signals the end of the array
+    arr->strings[arr->size++] = NULL;
+}
+
+// Deallocates the array of strings in the structure and resets the parameters.
+//
+// Argument:
+//   arr  the structure of dynamica array of strings to be deallocated
+//
+// arr->strings  will be freed, and  arr->size  and arr->capacity  will be reset
+// to zero.
 void DeleteDynStrArr(DynStrArr* arr) {
     // do nothing if the structure or the array is NULL
     if (!arr || !arr->strings) return;

@@ -5,20 +5,9 @@
 
 int main(void) {
     char* cmdline = PromptUser();
-
     DynStrArr* cmd_args = ParseCmdLine(cmdline);
 
-    int i = 0;
-    do {
-        char* arg = cmd_args->strings[i];
-        if (!arg) {
-            printf("[%d] = NULL\n", i);
-            break;
-        } else {
-            printf("[%d] = %s\n", i, arg);
-        }
-        i++;
-    } while (1);
+    RunCmd(cmd_args);
 
     // clean up
     free(cmdline);

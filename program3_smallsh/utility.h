@@ -19,11 +19,13 @@ typedef struct DynStrArr {
     int capacity;
 } DynStrArr;
 
-DynStrArr* InitDynStrArr(int capacity);
+void InitDynStrArr(DynStrArr* arr, int capacity);
 
 void DoubleDynStrArrCapacity(DynStrArr* arr);
 
 void PushBackDynStrArr(DynStrArr* arr, char* new_string);
+
+void PushBackNullDynStrArr(DynStrArr* arr);
 
 void DeleteDynStrArr(DynStrArr* arr);
 
