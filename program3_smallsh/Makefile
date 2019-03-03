@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c11 -lpthread -g -Wall -Wextra
+CFLAGS = -std=c99 -lpthread -g -Wall
 
 SRC = $(wildcard *.c)
 HDR = $(wildcard *.h)
