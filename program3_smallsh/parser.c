@@ -12,6 +12,8 @@
 
 #include "parser.h"
 #include "builtins.h"
+#include "utility.h"
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,6 +68,7 @@ DynStrArr* ParseCmdLine(char* cmdline) {
     return cmd_args;
 }
 
+// TODO
 void RunCmd(DynStrArr* cmdline, DynPidArr* children) {
     assert(cmdline && cmdline->size >= 2 && children);
 
@@ -79,6 +82,9 @@ void RunCmd(DynStrArr* cmdline, DynPidArr* children) {
     } else if (strcmp(cmd, "cd") == 0) {
         Cd(cmdline->strings[1]);
     } else {
-        printf("Non-builtin functions\n");
+        // use the  exec()  family for non-builtin commands
+        execvp(cmd, cmdline->strings);
+        perror("execvp() failure\n");
+        exit(2);
     }
 }

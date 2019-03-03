@@ -11,11 +11,12 @@
 // be executed via  exec() .
 
 #include "builtins.h"
+#include "utility.h"
 #include <unistd.h>
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <linux/limits.h>
 
 // TODO
 void Exit(DynPidArr* children) {
@@ -36,7 +37,7 @@ void Cd(char* path) {
 
     // try going to the directory & handle errors if any
     if (chdir(processed_path) == -1) {
-        perror("chdir() error\n");
+        perror("chdir() failure\n");
         return;
     }
 

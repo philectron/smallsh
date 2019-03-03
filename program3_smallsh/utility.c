@@ -11,6 +11,7 @@
 // They are essentially the "helpers" of the program.
 
 #include "utility.h"
+#include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
