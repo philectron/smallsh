@@ -26,6 +26,7 @@ char* PromptUser(void) {
     do {
         // get raw input
         printf(": ");
+        fflush(stdout);
         fgets(cmdline, MAX_CMDLINE_LEN, stdin);
 
         // remove trailing newline(s)
@@ -65,14 +66,14 @@ DynStrArr* ParseCmdLine(char* cmdline) {
     return cmd_args;
 }
 
-void RunCmd(DynStrArr* cmdline) {
-    assert(cmdline && cmdline->size >= 2);
+void RunCmd(DynStrArr* cmdline, DynPidArr* children) {
+    assert(cmdline && cmdline->size >= 2 && children);
 
     char* cmd = cmdline->strings[0];
 
     // check for built-in commands
     if (strcmp(cmd, "exit") == 0) {
-        Exit();
+        Exit(children);
     } else if (strcmp(cmd, "status") == 0) {
         Status();
     } else if (strcmp(cmd, "cd") == 0) {

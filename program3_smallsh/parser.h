@@ -23,6 +23,6 @@ char* PromptUser(void);
 
 DynStrArr* ParseCmdLine(char* cmdline);
 
-void RunCmd(DynStrArr* cmdline);
+void RunCmd(DynStrArr* cmdline, DynPidArr* children);
 
 #endif  // #ifndef PARSER_H_

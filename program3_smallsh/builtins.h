@@ -13,7 +13,9 @@
 #ifndef BUILTINS_H_
 #define BUILTINS_H_
 
-void Exit(void);
+#include "utility.h"
+
+void Exit(DynPidArr* children);
 
 void Cd(char* path);
 

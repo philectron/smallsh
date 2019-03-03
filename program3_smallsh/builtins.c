@@ -13,25 +13,40 @@
 #include "builtins.h"
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <linux/limits.h>
 
 // TODO
-void Exit(void) {
+void Exit(DynPidArr* children) {
     printf("Exit()\n");
 }
 
-// TODO
+// Changes the current working directory to a directory specified by  path .
 void Cd(char* path) {
-    printf("Cd()\n");
+    char* processed_path;
 
-    // if  path  is NULL, that means  cd  was called with no argument
-    if (!path) {
-        printf("path is NULL\n");
-    } else if (path[0] == '\0') {
-        printf("path is empty\n");
+    if (!path || path[0] == '\0') {
+        // cd  with no arg, default to ${HOME}
+        processed_path = getenv("HOME");
     } else {
-        printf("path = %s\n", path);
+        // cd  with a single arg
+        processed_path = path;
     }
+
+    // try going to the directory & handle errors if any
+    if (chdir(processed_path) == -1) {
+        perror("chdir() error\n");
+        return;
+    }
+
+    /* // debug: print cwd */
+    /* char cwd[PATH_MAX]; */
+    /* if (getcwd(cwd, sizeof(cwd)) == NULL) { */
+    /*     perror("getcwd() error\n"); */
+    /*     return; */
+    /* } */
+    /* printf("cwd = %s\n", cwd); */
 }
 
 // TODO
