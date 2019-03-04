@@ -13,6 +13,8 @@
 #ifndef UTILITY_H_
 #define UTILITY_H_
 
+#define JUNK_VAL (int)-7
+
 #include <sys/types.h>
 
 // a dynamic array that can hold a command line and its arguments

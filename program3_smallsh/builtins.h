@@ -19,7 +19,7 @@ void Exit(DynPidArr* children);
 
 void Cd(char* path);
 
-void Status(void);
+void Status(int child_exit_status);
 
 #endif  // #ifndef BUILTINS_H_
 

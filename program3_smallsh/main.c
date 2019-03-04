@@ -1,4 +1,6 @@
 #include "parser.h"
+#include "builtins.h"
+#include "sighandlers.h"
 #include "utility.h"
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -8,72 +10,37 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define INIT_NUM_CHILDREN (int)8
-#define JUNK_VAL (pid_t)-7
+#define SHELL_PID         (pid_t)getpid()
+#define INIT_CHILDREN_CAP (int)8
 
 int main(void) {
-    /* pid_t spawnpid = JUNK_VAL; */
-    /* int child_exit_status = JUNK_VAL; */
-    /*  */
-    /* char* cmdline = PromptUser(); */
-    /* DynStrArr* cmd_args = ParseCmdLine(cmdline); */
-    /*  */
-    /* spawnpid = fork(); */
-    /* switch (spawnpid) { */
-    /* case -1: */
-    /*     perror("Something went wrong\n"); */
-    /*     exit(1); */
-    /*     break; */
-    /* case 0: */
-    /*     printf("CHILD(getpid = %d, spawnpid = %d): Sleeping for 1 second\n", */
-    /*            (int)getpid(), spawnpid); */
-    /*     sleep(1); */
-    /*     printf("CHILD(getpid = %d, spawnpid = %d): Converting into '", */
-    /*            (int)getpid(), spawnpid); */
-    /*     for (int i = 0; i < cmd_args->size; i++) { */
-    /*         if (0 < i && i < cmd_args->size - 1) printf(" "); */
-    /*         if (cmd_args->strings[i]) { */
-    /*             printf("%s", cmd_args->strings[i]); */
-    /*         } else { */
-    /*             printf("'\n"); */
-    /*         } */
-    /*     } */
-    /*  */
-    /*     execvp(cmd_args->strings[0], cmd_args->strings); */
-    /*     perror("CHILD: execvp() failure\n"); */
-    /*     exit(2); */
-    /*      */
-    /*     break; */
-    /* default: */
-    /*     printf("PARENT(getpid = %d, spawnpid = %d): Sleeping for 2 seconds\n", */
-    /*            (int)getpid(), spawnpid); */
-    /*     sleep(2); */
-    /*     printf("PARENT(getpid = %d, spawnpid = %d): Wait()ing for child(%d) to terminate\n", */
-    /*            (int)getpid(), spawnpid, spawnpid); */
-    /*     pid_t actual_pid = waitpid(spawnpid, &child_exit_status, 0); */
-    /*     printf("PARENT(getpid = %d, spawnpid = %d): Child(%d) terminated. Exiting...\n", */
-    /*            (int)getpid(), spawnpid, actual_pid); */
-    /*     break; */
-    /* } */
-    /*  */
-    /* free(cmdline); */
-    /*  */
-    /* DeleteDynStrArr(cmd_args); */
-    /* free(cmd_args); */
-    /*  */
-    /* return 0; */
+    // trap signals
+    struct sigaction SIGINT_action = {0};     // deal with SIGINT aka Ctrl-C
+    SIGINT_action.sa_handler = CatchSIGINT;   // handler when caught
+    sigfillset(&SIGINT_action.sa_mask);       // block all signal types
+    SIGINT_action.sa_flags = 0;               // no flags
+    sigaction(SIGINT, &SIGINT_action, NULL);  // register the struct
 
-    /* -----------------------</TEST>-------------------------- */
+    /* struct sigaction SIGCHLD_action = {0};      // deal with SIGCHLD */
+    /* SIGCHLD_action.sa_handler = CatchSIGCHLD;   // handler when caught */
+    /* sigfillset(&SIGCHLD_action.sa_mask);        // block all signal types TODO? */
+    /* SIGCHLD_action.sa_flags = 0;                // no flags */
+    /* sigaction(SIGCHLD, &SIGCHLD_action, NULL);  // register the struct */
 
-    // clear screen
-    system("clear");
+    struct sigaction ignore_action = {0};      // set signals to be ignored
+    ignore_action.sa_handler = SIG_IGN;        // ignore signals when caught
+    sigaction(SIGHUP, &ignore_action, NULL);   // register to ignore SIGHUP
+    sigaction(SIGTERM, &ignore_action, NULL);  // register to ignore SIGTERM
+    sigaction(SIGQUIT, &ignore_action, NULL);  // register to ignore SIGQUIT
 
-    // while (1) {
+    int quit = 0;
+    int exit_status = (int)JUNK_VAL;
+    while (!quit) {
         char* cmdline = PromptUser();
         DynStrArr* cmd_args = ParseCmdLine(cmdline);
 
         DynPidArr children;
-        InitDynPidArr(&children, INIT_NUM_CHILDREN);
+        InitDynPidArr(&children, INIT_CHILDREN_CAP);
 
         // int i = 0;
         // while (1) {
@@ -89,7 +56,13 @@ int main(void) {
         // }
         // printf("Size = %d; Cap = %d\n", cmd_args->size, cmd_args->capacity);
 
-        RunCmd(cmd_args, &children);
+        quit = RunCmd(cmd_args, &children, &exit_status);
+        
+        /* // debug: print list of PIDs of child processes */
+        /* printf("\n"); */
+        /* for (int i = 0; i < children.size; i++) */
+        /*     printf("%d ", (int)children.pids[i]); */
+        /* printf("\n"); */
 
         // clean up
         free(cmdline);
@@ -98,7 +71,7 @@ int main(void) {
         free(cmd_args);
 
         DeleteDynPidArr(&children);
-    // }
+    }
 
     return 0;
 }

@@ -19,10 +19,12 @@
 #define MAX_CMDLINE_ARGS  (int)(512 + 2)   // + 2 for the command itself and  \0
 #define INIT_CMDLINE_ARGS (int)8           // initial number of cmd-line args
 
+extern int num_forks;
+
 char* PromptUser(void);
 
 DynStrArr* ParseCmdLine(char* cmdline);
 
-void RunCmd(DynStrArr* cmdline, DynPidArr* children);
+int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status);
 
 #endif  // #ifndef PARSER_H_

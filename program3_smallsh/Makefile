@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c99 -lpthread -g -Wall
+CFLAGS = -std=c99 -D_XOPEN_SOURCE -g -Wall
 
 SRC = $(wildcard *.c)
 HDR = $(wildcard *.h)
