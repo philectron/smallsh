@@ -14,8 +14,10 @@
 #include "builtins.h"
 #include "utility.h"
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -151,20 +153,83 @@ int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status) {
     num_fork++;
     switch (spawnpid) {
     case -1:
-        perror("Could not fork() a child\n");
+        perror("fork() failure\n");
         exit(1);
     case 0:  // child process
+        // redirect stdin to file if the  <  symbol was found
+        if (stdin_redir_idx != -1) {
+            char* file = cmdline->strings[stdin_redir_idx + 1];
+
+            // open a new file descriptor
+            int target_fd = open(file, O_RDONLY);
+            // make sure  open()  was successful
+            if (target_fd == -1) {
+                fprintf(stderr, "cannot open %s for input\n", file);
+                exit(1);
+            }
+
+            // redirect stdin to this new file descriptor
+            int dup2_status = dup2(target_fd, 0);  // stdin has fd 0
+            // make sure  dup2()  was successful
+            if (dup2_status == -1) {
+                perror("dup2() from stdin failure\n");
+                exit(1);
+            }
+
+            // close on exec()
+            fcntl(target_fd, F_SETFD, FD_CLOEXEC);
+        }
+
+        // redirect stdout to file if the  >  symbol was found
+        if (stdout_redir_idx != -1) {
+            char* file = cmdline->strings[stdout_redir_idx + 1];
+
+            // open a new file descriptor
+            int target_fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            // make sure  open()  was successful
+            if (target_fd == -1) {
+                fprintf(stderr, "cannot open %s for output\n", file);
+                exit(1);
+            }
+
+            // redirect stdout to this new file descriptor
+            int dup2_status = dup2(target_fd, 1);  // stdout has fd 1
+            // make sure  dup2()  was successful
+            if (dup2_status == -1) {
+                perror("dup2() from stdout failure\n");
+                exit(1);
+            }
+
+            // close on exec()
+            fcntl(target_fd, F_SETFD, FD_CLOEXEC);
+        }
+
         // use the  exec()  family for non-builtin commands
         execvp(cmd, execvp_arr);
 
         // if execvp() fails, handle it
-        fprintf(stderr, "%d: ", (int)getpid());
-        perror("execvp() failure\n");
+        fprintf(stderr, "%s: no such file or directory\n", execvp_arr[0]);
         exit(1);
     default:  // parent process
         // add the child's PID to the children array if it's bg and continue on
         if (is_backgrounded) {
             PushBackDynPidArr(children, spawnpid);
+
+            // check all background PIDs
+            for (int i = 0; i < children->size; i++) {
+                // check if any bg process has completed, return 0 if none has
+                int childpid = waitpid(children->pids[i], child_exit_status,
+                                       WNOHANG);  // non blocking
+
+                // if there is a completed bg process
+                if (childpid == children->pids[i]) {
+                    // pop from array
+                    PopDynPidArrAt(children, i);
+
+                    printf("background pid %d is done: ", (int)childpid);
+                    Status(*child_exit_status);
+                }
+            }
         } else {
             // otherwise (fg process), wait for child to finish
             // and makes sure  waitpid()  succeeds

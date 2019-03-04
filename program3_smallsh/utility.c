@@ -161,6 +161,31 @@ pid_t* PopBackDynPidArr(DynPidArr* arr) {
     return &(arr->pids[--arr->size]);
 }
 
+// Pops the target PID from the dynamic array. No returns. Does nothing if PID
+// not in array.
+//
+// Argument:
+//   arr  the structure of dynamic array of PIDs
+void PopPidDynPidArr(DynPidArr* arr, pid_t target) {
+    assert(arr);
+
+    for (int i = 0; i < arr->size; i++) {
+        if (arr->pids[i] == target) {
+            // order doesn't matter, so just overwrite with the final PID
+            arr->pids[i] = arr->pids[--arr->size];
+            break;
+        }
+    }
+}
+
+// Pops the (index)-th PID from the dynamic array. No returns.
+void PopDynPidArrAt(DynPidArr* arr, int index) {
+    assert(arr && 0 <= index && index < arr->size);
+
+    // order doesn't matter, so just overwrite with the final PID
+    arr->pids[index] = arr->pids[--arr->size];
+}
+
 // Deallocates the array of PIDs in the structure and resets the parameters.
 //
 // Argument:
