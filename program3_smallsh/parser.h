@@ -7,13 +7,13 @@
 // Program 3: Smallsh
 //
 // This module contains constants, parameters, and functions related to
-// prompting user's input commands, parsing them into smallsh, and interpret
-// them.
+// prompting user's input commands and parsing them into smallsh.
 
 #ifndef PARSER_H_
 #define PARSER_H_
 
 #include "utility.h"
+#include <stdbool.h>
 
 #define MAX_CMDLINE_LEN   (int)(2048 + 2)  // +2 for  \n  and  \0
 #define MAX_CMDLINE_ARGS  (int)(512 + 1)   // +1 for the command itself
@@ -21,11 +21,9 @@
 
 char* PromptUser(void);
 
-DynStrArr* ParseCmdLine(char* cmdline);
+DynStrArr* SplitCmdLineToWords(char* cmdline);
 
-int RunCmd(DynStrArr* cmdline, DynPidArr* bg_children, int* child_exit_status,
-           pid_t* fg_childpid);
-
-void CatchChildSIGINT(int signo);
+char** ParseCmdWords(DynStrArr* cmdwords, int* stdin_redir_idx,
+                     int* stdout_redir_idx, bool* is_bg);
 
 #endif  // #ifndef PARSER_H_

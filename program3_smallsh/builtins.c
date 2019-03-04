@@ -8,19 +8,15 @@
 //
 // This module contains constants, parameters, and functions related to the
 // built-in commands of the shell. Commands that are not in this module will
-// be executed via  exec() .
+// be executed via the  exec()  family.
 
 #include "builtins.h"
 #include "utility.h"
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/wait.h>
-#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <assert.h>
-#include <string.h>
 
 // Kills all background child processes, flushes stdout, and then terminates
 // the shell.

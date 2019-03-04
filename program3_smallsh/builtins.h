@@ -8,7 +8,7 @@
 //
 // This module contains constants, parameters, and functions related to the
 // built-in commands of the shell. Commands that are not in this module will
-// be executed via  exec() .
+// be executed via the  exec()  family.
 
 #ifndef BUILTINS_H_
 #define BUILTINS_H_

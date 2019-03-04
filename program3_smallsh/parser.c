@@ -7,8 +7,7 @@
 // Program 3: Smallsh
 //
 // This module contains constants, parameters, and functions related to
-// prompting user's input commands, parsing them into smallsh, and interpret
-// them.
+// prompting user's input commands and parsing them into smallsh.
 
 #include "parser.h"
 #include "builtins.h"
@@ -60,16 +59,16 @@ char* PromptUser(void) {
     return cmdline;
 }
 
-// Parses the command line by splitting them into words. Puts each of the words
-// into a dynamic array of C strings.
+// Splits the command line into words. Puts each of the words into a dynamic
+// array of C strings.
 //
 // Argument:
 //   cmdline  a pointer to the string that contains the command line
 //
 // Returns:
 //   A new dynamically allocated dynamic array structure of strings containing
-//   the parsed command line
-DynStrArr* ParseCmdLine(char* cmdline) {
+//   the split command line
+DynStrArr* SplitCmdLineToWords(char* cmdline) {
     // ensure  cmdline  not NULL and not empty
     assert(cmdline && cmdline[0] != '\0');
 
@@ -93,179 +92,71 @@ DynStrArr* ParseCmdLine(char* cmdline) {
     return cmd_args;
 }
 
-// Runs the command after it has been parsed. Commands will be further broken
-// down based on the three special symbols:  < ,  > , and  & .
-//
-// Built-in commands will be run accordingly. Non-built-in commands will be run
-// using the  exec()  family in a child process created by  fork() .
+// Parses the command line based on the three special symbols:  < ,  > , and  &
+// and outputs their word indices to corresponding parameters.
 //
 // Arguments:
-//   cmdline  a pointer to the dynamic array of structure of strings containing
-//            the parsed command line
-//   bg_children  a pointer to the dynamic array of structure of PIDs containing
-//                the PIDs of children that are run in the background
-//   child_exit_status  a pointer to the latest exit status of a child process
-//   fg_childpid  a pointer to the PID of the current foreground child process
+//   cmdline           a pointer to the string that contains the command line
+//   stdin_redir_idx   a pointer to the word index of the  <  symbol
+//   stdout_redir_idx  a pointer to the word index of the  >  symbol
+//   is_bg             a pointer to a flag, whether the process is backgrounded
+//
+// stdin_redir_idx ,  stdout_redir_idx , and  is_bg  will be modified after the
+// function returns.
 //
 // Returns:
-//   0  if the user wants the shell to keep going after running this command
-//      successfully
-//   1  if the user wants the shell to perform clean up and then terminate
-int RunCmd(DynStrArr* cmdline, DynPidArr* bg_children, int* child_exit_status,
-           pid_t* fg_childpid) {
-    assert(cmdline && cmdline->size >= 1 && bg_children && child_exit_status
-           && fg_childpid);
+//   An array of C strings containing the command and its arguments from word 0
+//   to the word right before a redirection symbol or the bg symbol. The array
+//   is terminated with a NULL as its last element
+//
+//   NULL if the command is a built-in function
+char** ParseCmdWords(DynStrArr* cmdwords, int* stdin_redir_idx,
+                     int* stdout_redir_idx, bool* is_bg) {
+    assert(cmdwords && cmdwords->size >= 1 && stdin_redir_idx
+           && stdout_redir_idx && is_bg);
 
-    char* cmd = cmdline->strings[0];
+    // init the output parameters
+    *stdin_redir_idx = -1;
+    *stdout_redir_idx = -1;
+    *is_bg = false;
 
     // check for built-in commands
-    if (strcmp(cmd, "exit") == 0) {
-        Exit(bg_children);
-        return 1;  // return 1 to let the shell clean up itself in main()
-    }
-    if (strcmp(cmd, "status") == 0) {
-        Status(*child_exit_status);
-        return 0;  // return 0 to continue the while loop in main()
-    }
-    if (strcmp(cmd, "cd") == 0) {
-        Cd((cmdline->size == 1) ? NULL : cmdline->strings[1]);
-        return 0;  // return 0 to continue the while loop in main()
-    }
+    char* cmd = cmdwords->strings[0];
+    if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "status") == 0
+        || strcmp(cmd, "cd") == 0) return NULL;
 
-    // find the  <  or  >  or  &  symbols.  &  must appear at the end to be
-    // considered
+    // find the  <  or  >  or trailing  &  symbols;  &  must appear at the end
     int execvp_len = 0;
     bool execvp_len_done = false;
-    int stdin_redir_idx = -1, stdout_redir_idx = -1;
-    bool is_bg = false;
-    for (int i = 0; i < cmdline->size; i++) {
+    for (int i = 0; i < cmdwords->size; i++) {
         // if matches stdin redirection symbol, done with counting words
-        if (strcmp(cmdline->strings[i], "<") == 0) {
-            stdin_redir_idx = i;
+        if (strcmp(cmdwords->strings[i], "<") == 0) {
+            *stdin_redir_idx = i;
             execvp_len_done = true;
         }
         // if matches stdout redirection symbol, done with counting words
-        if (strcmp(cmdline->strings[i], ">") == 0) {
-            stdout_redir_idx = i;
+        if (strcmp(cmdwords->strings[i], ">") == 0) {
+            *stdout_redir_idx = i;
             execvp_len_done = true;
         }
         // if matches background symbol at the end (and only at the end),
         // done with counting words
-        if (strcmp(cmdline->strings[i], "&") == 0 && i == cmdline->size - 1) {
-            is_bg = true;
+        if (strcmp(cmdwords->strings[i], "&") == 0 && i == cmdwords->size - 1) {
+            *is_bg = true;
             execvp_len_done = true;
         }
-        // otherwise, increase the len of the array to be passed to execvp()
+        // otherwise, increase the len of the array to be passed to  execvp()
         if (!execvp_len_done) execvp_len++;
     }
 
     execvp_len++;  // need 1 more slot to contain NULL
-    char* execvp_arr[execvp_len];
+    char** execvp_arr = malloc(execvp_len * sizeof(*execvp_arr));
+    assert(execvp_arr);
     for (int i = 0; i < execvp_len - 1; i++)
-        execvp_arr[i] = cmdline->strings[i];  // temp pointer, not hard copy
+        execvp_arr[i] = cmdwords->strings[i];  // temp pointer, not hard copy
+    free(execvp_arr[execvp_len - 1]);
     execvp_arr[execvp_len - 1] = NULL;
 
-    // fork off a child
-    pid_t spawnpid = JUNK_VAL;
-    spawnpid = fork();
-    switch (spawnpid) {
-    case -1:
-        perror("fork() failure\n");
-        exit(1);
-    case 0:  // child
-        // redirect stdin to file if the  <  symbol was found
-        if (stdin_redir_idx != -1) {
-            char* file = cmdline->strings[stdin_redir_idx + 1];
-
-            // open a new file descriptor
-            int target_fd = open(file, O_RDONLY);
-            // make sure  open()  was successful
-            if (target_fd == -1) {
-                fprintf(stderr, "cannot open %s for input\n", file);
-                exit(1);
-            }
-
-            // redirect stdin to this new file descriptor
-            int dup2_status = dup2(target_fd, 0);  // stdin has fd 0
-            // make sure  dup2()  was successful
-            if (dup2_status == -1) {
-                perror("dup2() from stdin failure\n");
-                exit(1);
-            }
-
-            // close on exec()
-            fcntl(target_fd, F_SETFD, FD_CLOEXEC);
-        }
-
-        // redirect stdout to file if the  >  symbol was found
-        if (stdout_redir_idx != -1) {
-            char* file = cmdline->strings[stdout_redir_idx + 1];
-
-            // open a new file descriptor
-            int target_fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            // make sure  open()  was successful
-            if (target_fd == -1) {
-                fprintf(stderr, "cannot open %s for output\n", file);
-                exit(1);
-            }
-
-            // redirect stdout to this new file descriptor
-            int dup2_status = dup2(target_fd, 1);  // stdout has fd 1
-            // make sure  dup2()  was successful
-            if (dup2_status == -1) {
-                perror("dup2() from stdout failure\n");
-                exit(1);
-            }
-
-            // close on exec()
-            fcntl(target_fd, F_SETFD, FD_CLOEXEC);
-        }
-        
-        signal(SIGINT, CatchChildSIGINT);
-        /* // trap signals */
-        /* struct sigaction SIGINT_action = {0};     // deal with SIGINT aka Ctrl-C */
-        /* SIGINT_action.sa_handler = CatchChildSIGINT;   // handler when caught */
-        /* sigfillset(&SIGINT_action.sa_mask);       // block all signal types */
-        /* SIGINT_action.sa_flags = 0;               // no flags */
-        /* sigaction(SIGINT, &SIGINT_action, NULL);  // register the struct */
-        /*  */
-        /* printf("CHILD: PID = %d\n", (int)getpid()); */
-        /* fflush(stdout); */
-
-        // use the  exec()  family for non-builtin commands
-        execvp(cmd, execvp_arr);
-
-        // if execvp() fails, handle it
-        fprintf(stderr, "%s: no such file or directory\n", execvp_arr[0]);
-        exit(1);
-    default:  // parent
-        // add the child's PID to the children array if it's bg and continue on
-        if (is_bg) {
-            PushBackDynPidArr(bg_children, spawnpid);
-            printf("background pid is %d\n", (int)spawnpid);
-            fflush(stdout);
-        } else {
-            *fg_childpid = spawnpid;
-            pid_t waitpid_ret = waitpid(spawnpid, child_exit_status, 0);
-            if (waitpid_ret == -1) {
-                // if waitpid() returns -1, the child was signal-terminated
-                Status(*child_exit_status);
-            } else {
-                // otherwise, make sure waitpid() returns same PID as spawnpid
-                assert(spawnpid == waitpid_ret);
-            }
-        }
-        return 0;  // return 0 to continue the while loop in main()
-    }
-
-    return 0;  // return 0 to continue the while loop in main()
-}
-
-// Catches SIGINT (i.e. Ctrl-C) and stops the current fg child process instead
-void CatchChildSIGINT(int signo) {
-    if (signo == SIGINT) {
-        write(STDOUT_FILENO, "Child received SIGINT\n", 22);
-    } else {
-        write(STDERR_FILENO, "Something went wrong with Child's SIGINT handler\n", 49);
-    }
+    // return an  execvp() -compatible array of C strings
+    return execvp_arr;
 }
