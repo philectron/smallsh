@@ -16,15 +16,16 @@
 #include "utility.h"
 
 #define MAX_CMDLINE_LEN   (int)(2048 + 2)  // +2 for  \n  and  \0
-#define MAX_CMDLINE_ARGS  (int)(512 + 2)   // + 2 for the command itself and  \0
+#define MAX_CMDLINE_ARGS  (int)(512 + 1)   // +1 for the command itself
 #define INIT_CMDLINE_ARGS (int)8           // initial number of cmd-line args
-
-extern int num_forks;
 
 char* PromptUser(void);
 
 DynStrArr* ParseCmdLine(char* cmdline);
 
-int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status);
+int RunCmd(DynStrArr* cmdline, DynPidArr* bg_children, int* child_exit_status,
+           pid_t* fg_childpid);
+
+void CatchChildSIGINT(int signo);
 
 #endif  // #ifndef PARSER_H_

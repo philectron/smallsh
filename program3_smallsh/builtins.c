@@ -22,19 +22,18 @@
 #include <assert.h>
 #include <string.h>
 
-// Kills all background processes and children, flushes stdout, and then
-// terminates the shell.
+// Kills all background child processes, flushes stdout, and then terminates
+// the shell.
 //
 // Argument:
-//   children  a dynamic array of PIDs containing the PIDs of the children
-void Exit(DynPidArr* children) {
-    assert(children);
+//   bg_children  a dynamic array of PIDs containing the PIDs of bg children
+void Exit(DynPidArr* bg_children) {
+    assert(bg_children);
 
     // kill all child processes
     pid_t* childpid;
     int child_exit_status;
-    while ((childpid = PopBackDynPidArr(children)) != NULL) {
-        printf("Cleaning child %d\n", (int)*childpid);
+    while ((childpid = PopBackDynPidArr(bg_children))) {
         kill(SIGKILL, *childpid);
         assert(*childpid == waitpid(*childpid, &child_exit_status, 0));
     }
@@ -53,18 +52,8 @@ void Cd(char* path) {
     }
 
     // try going to the directory & handle errors if any
-    if (chdir(processed_path) == -1) {
-        perror("chdir() failure\n");
-        return;
-    }
-
-    /* // debug: print cwd */
-    /* char cwd[PATH_MAX]; */
-    /* if (getcwd(cwd, sizeof(cwd)) == NULL) { */
-    /*     perror("getcwd() error\n"); */
-    /*     return; */
-    /* } */
-    /* printf("cwd = %s\n", cwd); */
+    if (chdir(processed_path) == -1)
+        fprintf(stderr, "%s: no such file or directory\n", processed_path);
 }
 
 // Displays the exit code (or signal termination code) of previously terminated
@@ -73,12 +62,14 @@ void Status(int child_exit_status) {
     if (WIFEXITED(child_exit_status) != 0) {
         // if terminated normally, get the exit status via macro
         printf("exit value %d\n", (int)WEXITSTATUS(child_exit_status));
+        fflush(stdout);
     } else if (WIFSIGNALED(child_exit_status) != 0) {
         // if terminated by a signal, get the exit signal via macro
         printf("terminated by signal %d\n", (int)WTERMSIG(child_exit_status));
+        fflush(stdout);
     } else {
         // let's hope it never gets here
-        fprintf(stderr, "Status(): Something went wrong. status = %d\n",
-                child_exit_status);
+        perror("Status() failure\n");
+        exit(1);
     }
 }

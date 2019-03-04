@@ -24,9 +24,22 @@
 #include <stdbool.h>
 #include <assert.h>
 
-int num_fork = 0;
-
-// TODO
+// Displays the prompt and prompts the user for a smallsh command.
+//
+// Assumes a command is formatted as
+//
+//   command [arg1 arg2 ...] [< input_file] [> output_file] [&]
+//
+// where items in square brackets are optional.
+//
+// Assumes commands are made up of words separated by spaces. The special
+// symbols-- < ,  > , and  & --are recognized, but they must be surrounded by
+// spaces like other words.
+//
+// Assumes the syntax of the command is valid.
+//
+// Returns:
+//   A new dynamically allocated C string containing the whole command line
 char* PromptUser(void) {
     // dynamically allocate memory for command line and ensure it succeeds
     char* cmdline = malloc(MAX_CMDLINE_LEN * sizeof(*cmdline));
@@ -47,7 +60,15 @@ char* PromptUser(void) {
     return cmdline;
 }
 
-// TODO
+// Parses the command line by splitting them into words. Puts each of the words
+// into a dynamic array of C strings.
+//
+// Argument:
+//   cmdline  a pointer to the string that contains the command line
+//
+// Returns:
+//   A new dynamically allocated dynamic array structure of strings containing
+//   the parsed command line
 DynStrArr* ParseCmdLine(char* cmdline) {
     // ensure  cmdline  not NULL and not empty
     assert(cmdline && cmdline[0] != '\0');
@@ -69,31 +90,45 @@ DynStrArr* ParseCmdLine(char* cmdline) {
         cmdline_tok = strtok(NULL, " ");
     }
 
-    // push a NULL at the end of parsed array, signaling the end of cmd
-    PushBackNullDynStrArr(cmd_args);
-
     return cmd_args;
 }
 
-// TODO
-int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status) {
-    assert(cmdline && cmdline->size >= 2 && children && child_exit_status);
+// Runs the command after it has been parsed. Commands will be further broken
+// down based on the three special symbols:  < ,  > , and  & .
+//
+// Built-in commands will be run accordingly. Non-built-in commands will be run
+// using the  exec()  family in a child process created by  fork() .
+//
+// Arguments:
+//   cmdline  a pointer to the dynamic array of structure of strings containing
+//            the parsed command line
+//   bg_children  a pointer to the dynamic array of structure of PIDs containing
+//                the PIDs of children that are run in the background
+//   child_exit_status  a pointer to the latest exit status of a child process
+//   fg_childpid  a pointer to the PID of the current foreground child process
+//
+// Returns:
+//   0  if the user wants the shell to keep going after running this command
+//      successfully
+//   1  if the user wants the shell to perform clean up and then terminate
+int RunCmd(DynStrArr* cmdline, DynPidArr* bg_children, int* child_exit_status,
+           pid_t* fg_childpid) {
+    assert(cmdline && cmdline->size >= 1 && bg_children && child_exit_status
+           && fg_childpid);
 
     char* cmd = cmdline->strings[0];
 
     // check for built-in commands
     if (strcmp(cmd, "exit") == 0) {
-        Exit(children);
+        Exit(bg_children);
         return 1;  // return 1 to let the shell clean up itself in main()
     }
-
     if (strcmp(cmd, "status") == 0) {
         Status(*child_exit_status);
         return 0;  // return 0 to continue the while loop in main()
     }
-
     if (strcmp(cmd, "cd") == 0) {
-        Cd(cmdline->strings[1]);
+        Cd((cmdline->size == 1) ? NULL : cmdline->strings[1]);
         return 0;  // return 0 to continue the while loop in main()
     }
 
@@ -101,10 +136,9 @@ int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status) {
     // considered
     int execvp_len = 0;
     bool execvp_len_done = false;
-    int stdin_redir_idx = -1;
-    int stdout_redir_idx = -1;
-    bool is_backgrounded = false;
-    for (int i = 0; i < cmdline->size - 1; i++) {  // -1 due to NULL
+    int stdin_redir_idx = -1, stdout_redir_idx = -1;
+    bool is_bg = false;
+    for (int i = 0; i < cmdline->size; i++) {
         // if matches stdin redirection symbol, done with counting words
         if (strcmp(cmdline->strings[i], "<") == 0) {
             stdin_redir_idx = i;
@@ -117,8 +151,8 @@ int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status) {
         }
         // if matches background symbol at the end (and only at the end),
         // done with counting words
-        if (strcmp(cmdline->strings[i], "&") == 0 && i == cmdline->size - 2) {
-            is_backgrounded = true;
+        if (strcmp(cmdline->strings[i], "&") == 0 && i == cmdline->size - 1) {
+            is_bg = true;
             execvp_len_done = true;
         }
         // otherwise, increase the len of the array to be passed to execvp()
@@ -131,31 +165,14 @@ int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status) {
         execvp_arr[i] = cmdline->strings[i];  // temp pointer, not hard copy
     execvp_arr[execvp_len - 1] = NULL;
 
-    /* // debug */
-    /* for (int i = 0; i < execvp_len; i++) { */
-    /*     if (!execvp_arr[i]) { */
-    /*         printf("[%d]: NULL\n", i); */
-    /*     } else { */
-    /*         printf("[%d]: %s\n", i, execvp_arr[i]); */
-    /*     } */
-    /* } */
-    /* printf("stdin_redir_idx = %d; stdout_redir_idx = %d; ", */
-    /*        stdin_redir_idx, stdout_redir_idx); */
-    /* is_backgrounded ? printf("is backgrounded\n") : printf("is foregrounded\n"); */
-
     // fork off a child
-    if (num_fork >= 20) {  // fail-safe for testing TODO delete when done
-        abort();
-    }
-
     pid_t spawnpid = JUNK_VAL;
     spawnpid = fork();
-    num_fork++;
     switch (spawnpid) {
     case -1:
         perror("fork() failure\n");
         exit(1);
-    case 0:  // child process
+    case 0:  // child
         // redirect stdin to file if the  <  symbol was found
         if (stdin_redir_idx != -1) {
             char* file = cmdline->strings[stdin_redir_idx + 1];
@@ -203,6 +220,17 @@ int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status) {
             // close on exec()
             fcntl(target_fd, F_SETFD, FD_CLOEXEC);
         }
+        
+        signal(SIGINT, CatchChildSIGINT);
+        /* // trap signals */
+        /* struct sigaction SIGINT_action = {0};     // deal with SIGINT aka Ctrl-C */
+        /* SIGINT_action.sa_handler = CatchChildSIGINT;   // handler when caught */
+        /* sigfillset(&SIGINT_action.sa_mask);       // block all signal types */
+        /* SIGINT_action.sa_flags = 0;               // no flags */
+        /* sigaction(SIGINT, &SIGINT_action, NULL);  // register the struct */
+        /*  */
+        /* printf("CHILD: PID = %d\n", (int)getpid()); */
+        /* fflush(stdout); */
 
         // use the  exec()  family for non-builtin commands
         execvp(cmd, execvp_arr);
@@ -210,35 +238,34 @@ int RunCmd(DynStrArr* cmdline, DynPidArr* children, int* child_exit_status) {
         // if execvp() fails, handle it
         fprintf(stderr, "%s: no such file or directory\n", execvp_arr[0]);
         exit(1);
-    default:  // parent process
+    default:  // parent
         // add the child's PID to the children array if it's bg and continue on
-        if (is_backgrounded) {
-            PushBackDynPidArr(children, spawnpid);
-
-            // check all background PIDs
-            for (int i = 0; i < children->size; i++) {
-                // check if any bg process has completed, return 0 if none has
-                int childpid = waitpid(children->pids[i], child_exit_status,
-                                       WNOHANG);  // non blocking
-
-                // if there is a completed bg process
-                if (childpid == children->pids[i]) {
-                    // pop from array
-                    PopDynPidArrAt(children, i);
-
-                    printf("background pid %d is done: ", (int)childpid);
-                    Status(*child_exit_status);
-                }
-            }
+        if (is_bg) {
+            PushBackDynPidArr(bg_children, spawnpid);
+            printf("background pid is %d\n", (int)spawnpid);
+            fflush(stdout);
         } else {
-            // otherwise (fg process), wait for child to finish
-            // and makes sure  waitpid()  succeeds
-            assert(spawnpid == waitpid(spawnpid, child_exit_status, 0));
-
-            /* printf("PARENT(%d): Child(%d) terminated\n", (int)getpid(), ret_childpid); */
+            *fg_childpid = spawnpid;
+            pid_t waitpid_ret = waitpid(spawnpid, child_exit_status, 0);
+            if (waitpid_ret == -1) {
+                // if waitpid() returns -1, the child was signal-terminated
+                Status(*child_exit_status);
+            } else {
+                // otherwise, make sure waitpid() returns same PID as spawnpid
+                assert(spawnpid == waitpid_ret);
+            }
         }
-        break;
+        return 0;  // return 0 to continue the while loop in main()
     }
 
     return 0;  // return 0 to continue the while loop in main()
+}
+
+// Catches SIGINT (i.e. Ctrl-C) and stops the current fg child process instead
+void CatchChildSIGINT(int signo) {
+    if (signo == SIGINT) {
+        write(STDOUT_FILENO, "Child received SIGINT\n", 22);
+    } else {
+        write(STDERR_FILENO, "Something went wrong with Child's SIGINT handler\n", 49);
+    }
 }

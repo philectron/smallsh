@@ -62,25 +62,6 @@ void PushBackDynStrArr(DynStrArr* arr, char* new_string) {
     arr->size++;
 }
 
-// Special push: Pushes a  NULL  to the back of the array of strings.
-// This NULL element will be considered an element of the array.
-//
-// Argument:
-//   arr  the structure of dynamic array of strings
-void PushBackNullDynStrArr(DynStrArr* arr) {
-    assert(arr);
-
-    // before adding, must double the capacity if the array is full
-    if (arr->size == arr->capacity) {
-        arr->strings = realloc(arr->strings, arr->capacity * 2
-                               * sizeof(*(arr->strings)));
-        arr->capacity *= 2;
-    }
-
-    // no need to allocate memory, this signals the end of the array
-    arr->strings[arr->size++] = NULL;
-}
-
 // Deallocates the array of strings in the structure and resets the parameters.
 //
 // Argument:
@@ -184,6 +165,16 @@ void PopDynPidArrAt(DynPidArr* arr, int index) {
 
     // order doesn't matter, so just overwrite with the final PID
     arr->pids[index] = arr->pids[--arr->size];
+}
+
+// Returns the index of the target PID, or -1 if not found.
+int IndexOfDynPidArr(DynPidArr* arr, pid_t target) {
+    assert(arr);
+
+    for (int i = 0; i < arr->size; i++)
+        if (arr->pids[i] == target) return i;
+
+    return -1;
 }
 
 // Deallocates the array of PIDs in the structure and resets the parameters.
