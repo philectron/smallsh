@@ -15,7 +15,7 @@
 
 #include "utility.h"
 
-void Exit(DynPidArr* bg_children);
+void Exit(DynPidArr* bg_children, int exit_code);
 
 void Cd(char* path);
 

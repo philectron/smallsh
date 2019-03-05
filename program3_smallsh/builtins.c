@@ -23,49 +23,48 @@
 //
 // Argument:
 //   bg_children  a dynamic array of PIDs containing the PIDs of bg children
-void Exit(DynPidArr* bg_children) {
+//   exit_code    the exit code specified for the final  exit()  call
+void Exit(DynPidArr* bg_children, int exit_code) {
     assert(bg_children);
 
     // kill all child processes
     pid_t* childpid;
-    int child_exit_status;
+    /* int child_exit_status; */
     while ((childpid = PopBackDynPidArr(bg_children))) {
-        kill(SIGKILL, *childpid);
-        assert(*childpid == waitpid(*childpid, &child_exit_status, 0));
+        printf("Killing %d\n", (int)*childpid);
+        kill(*childpid, SIGKILL);
+        /* waitpid(*childpid, &child_exit_status, 0); */
     }
+
+    // clean up PID container
+    DeleteDynPidArr(bg_children);
+
+    exit(exit_code);
 }
 
 // Changes the current working directory to a directory specified by  path .
 void Cd(char* path) {
-    char* processed_path;
-
-    if (!path || path[0] == '\0') {
-        // cd  with no arg, default to ${HOME}
-        processed_path = getenv("HOME");
-    } else {
-        // cd  with a single arg
-        processed_path = path;
-    }
+    assert(path);
 
     // try going to the directory & handle errors if any
-    if (chdir(processed_path) == -1)
-        fprintf(stderr, "%s: no such file or directory\n", processed_path);
+    if (chdir(path) == -1)
+        fprintf(stderr, "%s: no such file or directory\n", path);
 }
 
 // Displays the exit code (or signal termination code) of previously terminated
 // process.
 void Status(int child_exit_status) {
-    if (WIFEXITED(child_exit_status) != 0) {
+    if (WIFEXITED(child_exit_status)) {
         // if terminated normally, get the exit status via macro
         printf("exit value %d\n", (int)WEXITSTATUS(child_exit_status));
         fflush(stdout);
-    } else if (WIFSIGNALED(child_exit_status) != 0) {
+    } else if (WIFSIGNALED(child_exit_status)) {
         // if terminated by a signal, get the exit signal via macro
         printf("terminated by signal %d\n", (int)WTERMSIG(child_exit_status));
         fflush(stdout);
     } else {
         // let's hope it never gets here
-        perror("Status() failure\n");
+        fprintf(stderr, "Status() failure\n");
         exit(1);
     }
 }
