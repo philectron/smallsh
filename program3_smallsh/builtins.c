@@ -62,9 +62,5 @@ void Status(int child_exit_status) {
         // if terminated by a signal, get the exit signal via macro
         printf("terminated by signal %d\n", (int)WTERMSIG(child_exit_status));
         fflush(stdout);
-    } else {
-        // let's hope it never gets here
-        fprintf(stderr, "Status() failure\n");
-        exit(1);
     }
 }
