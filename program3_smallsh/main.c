@@ -93,12 +93,6 @@ int main(void) {
     SIGCHLD_action.sa_flags = SA_RESTART;       // restart syscalls
     sigaction(SIGCHLD, &SIGCHLD_action, NULL);  // register the struct
 
-    /* struct sigaction ignore_action = {{0}};    // set signals to be ignored */
-    /* ignore_action.sa_handler = SIG_IGN;        // ignore signals when caught */
-    /* sigaction(SIGHUP, &ignore_action, NULL);   // ignore SIGHUP */
-    /* sigaction(SIGTERM, &ignore_action, NULL);  // ignore SIGTERM */
-    /* sigaction(SIGQUIT, &ignore_action, NULL);  // ignore SIGQUIT */
-
     // initialization of static global var
     InitDynPidArr(&bg_children, INIT_CHILDREN_CAP);
     fg_childpid = JUNK_VAL;
@@ -198,19 +192,6 @@ int main(void) {
                 struct sigaction ignore_action = {{0}};
                 ignore_action.sa_handler = SIG_IGN;
                 sigaction(SIGINT, &ignore_action, NULL);
-            } else {
-                /* // default action with SIGINT, SIGHUP, and SIGTERM */
-                /* struct sigaction default_action = {{0}}; */
-                /* // default action when caught */
-                /* default_action.sa_handler = SIG_DFL; */
-                /* // block all signal types */
-                /* sigfillset(&default_action.sa_mask); */
-                /* // restart syscalls */
-                /* default_action.sa_flags = SA_RESTART; */
-                /* // register the struct */
-                /* sigaction(SIGINT, &default_action, NULL); */
-                /* sigaction(SIGHUP, &default_action, NULL); */
-                /* sigaction(SIGTERM, &default_action, NULL); */
             }
 
             // ignore SIGTSTP

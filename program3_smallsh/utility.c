@@ -37,9 +37,9 @@ void RedirectFileDescriptor(int src_fd, char* dest_pathname, int dest_flags,
     // make sure  open()  was successful
     if (target_fd == -1) {
         if (src_fd == 0) {
-            fprintf(stderr, "cannot open %s for stdin\n", dest_pathname);
+            fprintf(stderr, "cannot open %s for input\n", dest_pathname);
         } else if (src_fd == 1) {
-            fprintf(stderr, "cannot open %s for stdout\n", dest_pathname);
+            fprintf(stderr, "cannot open %s for output\n", dest_pathname);
         }
         exit(1);
     }
