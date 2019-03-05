@@ -146,48 +146,10 @@ int main(void) {
             if (stdin_redir_idx != -1) {
                 char* file = cmdwords->strings[stdin_redir_idx + 1];
                 RedirectFileDescriptor(0, file, O_RDONLY, 0);
-
-                /* // open a new file descriptor */
-                /* int target_fd = open(file, O_RDONLY); */
-                /* // make sure  open()  was successful */
-                /* if (target_fd == -1) { */
-                /*     fprintf(stderr, "cannot open %s for input\n", file); */
-                /*     exit(1); */
-                /* } */
-                /*  */
-                /* // redirect stdin to this new file descriptor */
-                /* int dup2_status = dup2(target_fd, 0);  // stdin has fd 0 */
-                /* // make sure  dup2()  was successful */
-                /* if (dup2_status == -1) { */
-                /*     fprintf(stderr, "dup2() from stdin failure\n"); */
-                /*     exit(1); */
-                /* } */
-                /*  */
-                /* // close on  exec() */
-                /* fcntl(target_fd, F_SETFD, FD_CLOEXEC); */
             } else if (is_bg) {
                 // if the process is to run on background, suppress all stdin
                 // if no input file is specified
                 RedirectFileDescriptor(0, "/dev/null", O_RDONLY, 0);
-
-                /* // open a new file descriptor */
-                /* int target_fd = open("/dev/null", O_RDONLY); */
-                /* // make sure  open()  was successful */
-                /* if (target_fd == -1) { */
-                /*     fprintf(stderr, "cannot open /dev/null for input\n"); */
-                /*     exit(1); */
-                /* } */
-                /*  */
-                /* // redirect stdout to this new file descriptor */
-                /* int dup2_status = dup2(target_fd, 0);  // stdin has fd 0 */
-                /* // make sure  dup2()  was successful */
-                /* if (dup2_status == -1) { */
-                /*     fprintf(stderr, "dup2() from stdin failure\n"); */
-                /*     exit(1); */
-                /* } */
-                /*  */
-                /* // close on  exec() */
-                /* fcntl(target_fd, F_SETFD, FD_CLOEXEC); */
             }
 
             // redirect stdout to file if the  >  symbol was found
@@ -195,48 +157,10 @@ int main(void) {
                 char* file = cmdwords->strings[stdout_redir_idx + 1];
                 RedirectFileDescriptor(1, file, O_WRONLY | O_CREAT | O_TRUNC,
                                        0644);
-
-                /* // open a new file descriptor */
-                /* int target_fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644); */
-                /* // make sure  open()  was successful */
-                /* if (target_fd == -1) { */
-                /*     fprintf(stderr, "cannot open %s for output\n", file); */
-                /*     exit(1); */
-                /* } */
-                /*  */
-                /* // redirect stdout to this new file descriptor */
-                /* int dup2_status = dup2(target_fd, 1);  // stdout has fd 1 */
-                /* // make sure  dup2()  was successful */
-                /* if (dup2_status == -1) { */
-                /*     fprintf(stderr, "dup2() from stdout failure\n"); */
-                /*     exit(1); */
-                /* } */
-                /*  */
-                /* // close on  exec() */
-                /* fcntl(target_fd, F_SETFD, FD_CLOEXEC); */
             } else if (is_bg && !is_fg_only_mode) {
                 // if the process is to run on background, suppress all stdout
                 // if no output file is specified
                 RedirectFileDescriptor(1, "/dev/null", O_WRONLY, 0);
-
-                /* // open a new file descriptor */
-                /* int target_fd = open("/dev/null", O_WRONLY); */
-                /* // make sure  open()  was successful */
-                /* if (target_fd == -1) { */
-                /*     fprintf(stderr, "cannot open /dev/null for output\n"); */
-                /*     exit(1); */
-                /* } */
-                /*  */
-                /* // redirect stdout to this new file descriptor */
-                /* int dup2_status = dup2(target_fd, 1);  // stdout has fd 1 */
-                /* // make sure  dup2()  was successful */
-                /* if (dup2_status == -1) { */
-                /*     fprintf(stderr, "dup2() from stdout failure\n"); */
-                /*     exit(1); */
-                /* } */
-                /*  */
-                /* // close on  exec() */
-                /* fcntl(target_fd, F_SETFD, FD_CLOEXEC); */
             }
 
             // signal handler registration
