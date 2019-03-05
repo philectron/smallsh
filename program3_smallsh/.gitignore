@@ -2,4 +2,5 @@
 smallsh
 
 # Output files
-results
+junk*
+mytestresults
