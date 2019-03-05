@@ -96,10 +96,8 @@ void RedirectFileDescriptor(int src_fd, char* dest_pathname, int dest_flags,
 // Dynamically allocates an array of strings structure with the given capacity.
 //
 // Argument:
+//   arr       the structure of dynamic array of strings to be initialized
 //   capacity  the initial capacity of the array
-//
-// Returns:
-//   A newly allocated structure of dynamic array of strings
 void InitDynStrArr(DynStrArr* arr, int capacity) {
     assert(arr && capacity > 0);
 
@@ -163,10 +161,8 @@ void DeleteDynStrArr(DynStrArr* arr) {
 // Dynamically allocates an array of PIDs structure with the given capacity.
 //
 // Argument:
+//   arr       the structure of dynamic array of PIDs to be initalized
 //   capacity  the initial capacity of the array
-//
-// Returns:
-//   A newly allocated structure of dynamic array of PIDs
 void InitDynPidArr(DynPidArr* arr, int capacity) {
     assert(arr && capacity > 0);
 
@@ -209,6 +205,7 @@ void PushBackDynPidArr(DynPidArr* arr, pid_t new_pid) {
 //
 // Returns:
 //   A pointer to the PID of the latest children (the back of the array)
+//   NULL if array is empty
 pid_t* PopBackDynPidArr(DynPidArr* arr) {
     assert(arr);
 
@@ -220,6 +217,10 @@ pid_t* PopBackDynPidArr(DynPidArr* arr) {
 }
 
 // Pops the (index)-th PID from the dynamic array. No returns.
+//
+// Arguments:
+//   arr    the structure of dynamic array of PIDs to remove the PID from
+//   index  the index of the PID to be removed from the array (must be in range)
 void PopDynPidArrAt(DynPidArr* arr, int index) {
     assert(arr && 0 <= index && index < arr->size);
 

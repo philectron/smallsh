@@ -183,16 +183,6 @@ int main(void) {
         ParseCmdWords(cmdwords, execvp_argv, &execvp_argc, &stdin_redir_idx,
                       &stdout_redir_idx, &is_bg);
 
-        /* for (int i = 0; i < execvp_argc; i++) { */
-        /*     printf("[%d]: ", i); */
-        /*     if (execvp_argv[i]) { */
-        /*         printf("%s\n", execvp_argv[i]); */
-        /*     } else { */
-        /*         printf("NULL\n"); */
-        /*     } */
-        /* } */
-        /* continue; */
-
         // fork off a child
         pid_t spawnpid = JUNK_VAL;
         spawnpid = fork();

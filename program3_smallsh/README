@@ -17,6 +17,8 @@ After compiling the program, run
 
     ./smallsh
 
+to start smallsh. To stop the shell, simply execute  exit  in the prompt.
+
 --------------------------------------------------------------------------------
 HOW TO RECOMPILE
 
@@ -25,4 +27,4 @@ a recompile, run
 
     make clean
 
-And then run  make  again
+And then run  make  again.
