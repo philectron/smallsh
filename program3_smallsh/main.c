@@ -25,14 +25,13 @@ static bool is_fg_only_mode;   // toggle for the foreground-only mode
 // Catches SIGINT (i.e. INTerrupt i.e. Ctrl-C) and let the current foreground
 // child process terminate itself instead of exiting from the shell.
 void CatchSIGINT(int signo) {
+    // only interrupt running foreground children
     if (fg_childpid != JUNK_VAL) {
-        /* write(STDOUT_FILENO, "terminated", 10); */
-        kill(fg_childpid, SIGINT);
-        printf("terminated by signal %d\n", signo);
+        waitpid(fg_childpid, &fg_exit_status, 0);
     } else {
         write(STDOUT_FILENO, "\n: ", 3);
+        fflush(stdout);
     }
-    fflush(stdout);
 }
 
 // Catches SIGTSTP (i.e. Terminal SToP i.e. Ctrl-Z) and toggle the
@@ -63,10 +62,10 @@ void CatchSIGCHLD(int signo) {
         if (done_childpid_idx != -1) {
             PopDynPidArrAt(&bg_children, done_childpid_idx);
 
-            /* write(STDOUT_FILENO, "\nBackground child finished\n", 27); */
             printf("background pid %d is done: ", done_childpid);
             Status(exit_status);
             if (WIFEXITED(exit_status)) write(STDOUT_FILENO, ": ", 2);
+            fflush(stdout);
 
             // reset background PID
             bg_childpid = JUNK_VAL;
@@ -94,11 +93,11 @@ int main(void) {
     SIGCHLD_action.sa_flags = SA_RESTART;       // restart syscalls
     sigaction(SIGCHLD, &SIGCHLD_action, NULL);  // register the struct
 
-    struct sigaction ignore_action = {{0}};    // set signals to be ignored
-    ignore_action.sa_handler = SIG_IGN;        // ignore signals when caught
-    sigaction(SIGHUP, &ignore_action, NULL);   // ignore SIGHUP
-    sigaction(SIGTERM, &ignore_action, NULL);  // ignore SIGTERM
-    sigaction(SIGQUIT, &ignore_action, NULL);  // ignore SIGQUIT
+    /* struct sigaction ignore_action = {{0}};    // set signals to be ignored */
+    /* ignore_action.sa_handler = SIG_IGN;        // ignore signals when caught */
+    /* sigaction(SIGHUP, &ignore_action, NULL);   // ignore SIGHUP */
+    /* sigaction(SIGTERM, &ignore_action, NULL);  // ignore SIGTERM */
+    /* sigaction(SIGQUIT, &ignore_action, NULL);  // ignore SIGQUIT */
 
     // initialization of static global var
     InitDynPidArr(&bg_children, INIT_CHILDREN_CAP);
@@ -194,22 +193,24 @@ int main(void) {
                 RedirectFileDescriptor(1, "/dev/null", O_WRONLY, 0);
             }
 
-            // ignore SIGINT if backgrounded
             if (is_bg) {
+                // ignore SIGINT if backgrounded
                 struct sigaction ignore_action = {{0}};
                 ignore_action.sa_handler = SIG_IGN;
                 sigaction(SIGINT, &ignore_action, NULL);
             } else {
-                // deal with SIGINT as a child
-                struct sigaction SIGINT_child_action = {{0}};
-                // default action when caught
-                SIGINT_child_action.sa_handler = SIG_DFL;
-                // block all signal types
-                sigfillset(&SIGINT_child_action.sa_mask);
-                // restart syscalls
-                SIGINT_child_action.sa_flags = SA_RESTART;
-                // register the struct
-                sigaction(SIGINT, &SIGINT_child_action, NULL);
+                /* // default action with SIGINT, SIGHUP, and SIGTERM */
+                /* struct sigaction default_action = {{0}}; */
+                /* // default action when caught */
+                /* default_action.sa_handler = SIG_DFL; */
+                /* // block all signal types */
+                /* sigfillset(&default_action.sa_mask); */
+                /* // restart syscalls */
+                /* default_action.sa_flags = SA_RESTART; */
+                /* // register the struct */
+                /* sigaction(SIGINT, &default_action, NULL); */
+                /* sigaction(SIGHUP, &default_action, NULL); */
+                /* sigaction(SIGTERM, &default_action, NULL); */
             }
 
             // ignore SIGTSTP
@@ -241,12 +242,11 @@ int main(void) {
             // when foreground process finishes, reset the foreground PID
             fg_childpid = JUNK_VAL;
 
-            if (waitpid_status == -1) {
-                // if  waitpid()  returns -1, the child was signal-terminated
-                Status(fg_exit_status);
-            } else {
-                // otherwise, make sure  waitpid()  returns same PID as spawnpid
+            // no need to print status if exited; otherwise print status
+            if (WIFEXITED(fg_exit_status)) {
                 assert(spawnpid == waitpid_status);
+            } else if (WIFSIGNALED(fg_exit_status)) {
+                Status(fg_exit_status);
             }
         }
 
