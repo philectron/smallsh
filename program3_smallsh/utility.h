@@ -29,6 +29,8 @@ typedef struct DynPidArr {
     int capacity;
 } DynPidArr;
 
+void IntToString(int x, char* s);
+
 void RedirectFileDescriptor(int src_fd, char* dest_pathname, int dest_flags,
                             mode_t dest_mode);
 

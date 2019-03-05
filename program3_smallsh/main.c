@@ -150,6 +150,7 @@ int main(void) {
             // clean up all background children and exit with code 0
             Exit(&bg_children, 0);
         }
+
         if (strcmp(cmdwords->strings[0], "status") == 0) {
             Status(fg_exit_status);
 
@@ -158,7 +159,9 @@ int main(void) {
             DeleteDynStrArr(cmdwords);
             free(cmdwords);
             continue;
-        } else if (strcmp(cmdwords->strings[0], "cd") == 0) {
+        }
+
+        if (strcmp(cmdwords->strings[0], "cd") == 0) {
             // if no arg, pass  ${HOME}  in as path, otherwise pass  arg[1]
             Cd((cmdwords->size == 1) ? getenv("HOME") : cmdwords->strings[1]);
 
@@ -180,6 +183,15 @@ int main(void) {
         ParseCmdWords(cmdwords, execvp_argv, &execvp_argc, &stdin_redir_idx,
                       &stdout_redir_idx, &is_bg);
 
+        /* for (int i = 0; i < execvp_argc; i++) { */
+        /*     printf("[%d]: ", i); */
+        /*     if (execvp_argv[i]) { */
+        /*         printf("%s\n", execvp_argv[i]); */
+        /*     } else { */
+        /*         printf("NULL\n"); */
+        /*     } */
+        /* } */
+        /* continue; */
 
         // fork off a child
         pid_t spawnpid = JUNK_VAL;

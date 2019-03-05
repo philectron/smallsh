@@ -19,6 +19,43 @@
 #include <string.h>
 #include <assert.h>
 
+// Converts an integer  x  to a string and put results in the string  s .
+void IntToString(int x, char* s) {
+    assert(s);
+
+    // special case: x = 0
+    if (x == 0) {
+        s[0] = '0';
+        s[1] = '\0';
+        return;
+    }
+
+    // keep track of how many character currently in  s
+    int slen = 0;
+
+    // if  x  is negative, prefix  s  with a negative sign and make  x  positive
+    if (x < 0) {
+        s[slen++] = '-';
+        x *= -1;
+    }
+
+    // get a temporary string to store the reverse string version of x
+    char srev[12];
+    int srev_len = 0;
+    // divide x by 10 and take the remainder to get digits from right to left
+    while (x > 0) {
+        srev[srev_len++] = '0' + (x % 10);  // convert single digit to char
+        x /= 10;
+    }
+    // terminate the reverse of  s
+    srev[srev_len] = '\0';
+
+    // copy to  s  in the right order
+    for (int i = srev_len - 1; i >= 0; i--) s[slen++] = srev[i];
+    // terminate  s
+    s[slen] = '\0';
+}
+
 // Redirects the specified source file descriptor to a destination path name,
 // with the provided flags and mode.
 //

@@ -80,12 +80,44 @@ DynStrArr* SplitCmdLineToWords(char* cmdline) {
     strcpy(cmdline_tmp, cmdline);
 
     // divide the command line into tokens with " " being the delimiter
-    char* cmdline_tok = strtok(cmdline_tmp, " ");  // 1st word
+    char* raw_cmdline_tok = strtok(cmdline_tmp, " ");  // 1st word
 
     // split the command line until it cannot be split anymore
-    while (cmdline_tok != NULL) {
+    while (raw_cmdline_tok != NULL) {
+        char cmdline_tok[MAX_CMDLINE_LEN];
+        memset(cmdline_tok, '\0', MAX_CMDLINE_LEN);
+
+        // evaluate  $$  if there is one to current PID
+        int raw_len = strlen(raw_cmdline_tok), len = 0;
+        if (raw_len == 1) {
+            strcat(cmdline_tok, raw_cmdline_tok);
+        } else {
+            for (int i = 0; i < raw_len - 1; ) {
+                if (raw_cmdline_tok[i] == '$'
+                        && raw_cmdline_tok[i + 1] == '$') {
+                    // convert PID to string
+                    char pid_str[12];
+                    IntToString((int)getpid(), pid_str);
+                    // concat the new string to the processed token
+                    strcat(cmdline_tok, pid_str);
+                    len = strlen(cmdline_tok);
+                    // skip 1 index
+                    i += 2;
+                } else {
+                    // concat char to the processed token normally
+                    cmdline_tok[len++] = raw_cmdline_tok[i];
+                    // don't miss the final character which isn't iterated over
+                    if (i == raw_len - 2)
+                        cmdline_tok[len++] = raw_cmdline_tok[raw_len - 1];
+                    // increment normally
+                    i++;
+                }
+            }
+        }
+
+        // push to results
         PushBackDynStrArr(cmd_args, cmdline_tok);
-        cmdline_tok = strtok(NULL, " ");
+        raw_cmdline_tok = strtok(NULL, " ");
     }
 
     return cmd_args;
