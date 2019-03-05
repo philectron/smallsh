@@ -117,11 +117,6 @@ void ParseCmdWords(DynStrArr* cmdwords, char** execvp_argv, int* execvp_argc,
     *stdout_redir_idx = -1;
     *is_bg = false;
 
-    /* // check for built-in commands */
-    /* char* cmd = cmdwords->strings[0]; */
-    /* if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "status") == 0 */
-    /*     || strcmp(cmd, "cd") == 0) return; */
-
     // find the  <  or  >  or trailing  &  symbols;  &  must appear at the end
     bool execvp_len_done = false;
     for (int i = 0; i < cmdwords->size; i++) {

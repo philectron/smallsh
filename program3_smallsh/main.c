@@ -1,3 +1,20 @@
+// main.c
+//
+// Phi Luu
+//
+// Oregon State University
+// CS_344_001_W2019 Operating Systems 1
+// Program 3: Smallsh
+//
+// This is the main module containing the main smallsh process and signal
+// handlers.
+//
+// Credits to Benjamin Brewster for awesome lecture :). References:
+// - 03.01_Processes
+// - 03.02_Process_Management_and_Zombies
+// - 03.03_Signals
+// - 03.04_More_UNIX_IO
+
 #include "parser.h"
 #include "builtins.h"
 #include "utility.h"
@@ -29,7 +46,9 @@ void CatchSIGINT(int signo) {
     if (fg_childpid != JUNK_VAL) {
         waitpid(fg_childpid, &fg_exit_status, 0);
     } else {
+        // make prompt more pretty
         write(STDOUT_FILENO, "\n: ", 3);
+
         fflush(stdout);
     }
 }
@@ -37,14 +56,21 @@ void CatchSIGINT(int signo) {
 // Catches SIGTSTP (i.e. Terminal SToP i.e. Ctrl-Z) and toggle the
 // foreground-only mode.
 void CatchSIGTSTP(int signo) {
+    // must wait for foreground process to finish if any
+    if (fg_childpid != JUNK_VAL) waitpid(fg_childpid, &fg_exit_status, 0);
+
+    // toggle between the modes and print informative messages
     if (is_fg_only_mode) {
-        is_fg_only_mode = false;
-        write(STDOUT_FILENO, "\nExiting foreground-only mode\n: ", 32);
+        write(STDOUT_FILENO, "\nExiting foreground-only mode\n", 30);
     } else {
-        is_fg_only_mode = true;
         write(STDOUT_FILENO,
-              "\nEntering foreground-only mode (& is now ignored)\n: ", 52);
+              "\nEntering foreground-only mode (& is now ignored)\n", 50);
     }
+    is_fg_only_mode = !is_fg_only_mode;  // toggle
+
+    // make prompt more pretty
+    if (fg_childpid == JUNK_VAL) write(STDOUT_FILENO, ": ", 2);
+
     fflush(stdout);
 }
 
@@ -64,7 +90,10 @@ void CatchSIGCHLD(int signo) {
 
             printf("background pid %d is done: ", done_childpid);
             Status(exit_status);
+
+            // make prompt more pretty
             if (WIFEXITED(exit_status)) write(STDOUT_FILENO, ": ", 2);
+
             fflush(stdout);
 
             // reset background PID
@@ -187,8 +216,8 @@ int main(void) {
                 RedirectFileDescriptor(1, "/dev/null", O_WRONLY, 0);
             }
 
-            if (is_bg) {
-                // ignore SIGINT if backgrounded
+            // ignore SIGINT if backgrounded and not in fg-only mode
+            if (is_bg && !is_fg_only_mode) {
                 struct sigaction ignore_action = {{0}};
                 ignore_action.sa_handler = SIG_IGN;
                 sigaction(SIGINT, &ignore_action, NULL);
@@ -218,17 +247,13 @@ int main(void) {
             // otherwise, block the shell until the child exits (either normally
             // or by a signal)
             fg_childpid = spawnpid;
-            pid_t waitpid_status = waitpid(spawnpid, &fg_exit_status, 0);
+            waitpid(spawnpid, &fg_exit_status, 0);
 
             // when foreground process finishes, reset the foreground PID
             fg_childpid = JUNK_VAL;
 
-            // no need to print status if exited; otherwise print status
-            if (WIFEXITED(fg_exit_status)) {
-                assert(spawnpid == waitpid_status);
-            } else if (WIFSIGNALED(fg_exit_status)) {
-                Status(fg_exit_status);
-            }
+            // print status if signal-terminated
+            if (WIFSIGNALED(fg_exit_status)) Status(fg_exit_status);
         }
 
         // clean up heap used for this loop

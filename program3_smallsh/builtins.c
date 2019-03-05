@@ -27,14 +27,10 @@
 void Exit(DynPidArr* bg_children, int exit_code) {
     assert(bg_children);
 
-    // kill all child processes
+    // kill all background child processes
     pid_t* childpid;
-    /* int child_exit_status; */
-    while ((childpid = PopBackDynPidArr(bg_children))) {
-        printf("Killing %d\n", (int)*childpid);
+    while ((childpid = PopBackDynPidArr(bg_children)))
         kill(*childpid, SIGKILL);
-        /* waitpid(*childpid, &child_exit_status, 0); */
-    }
 
     // clean up PID container
     DeleteDynPidArr(bg_children);
