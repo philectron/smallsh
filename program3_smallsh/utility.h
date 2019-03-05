@@ -29,6 +29,9 @@ typedef struct DynPidArr {
     int capacity;
 } DynPidArr;
 
+void RedirectFileDescriptor(int src_fd, char* dest_pathname, int dest_flags,
+                            mode_t dest_mode);
+
 void InitDynStrArr(DynStrArr* arr, int capacity);
 void PushBackDynStrArr(DynStrArr* arr, char* new_string);
 void DeleteDynStrArr(DynStrArr* arr);
@@ -36,7 +39,7 @@ void DeleteDynStrArr(DynStrArr* arr);
 void InitDynPidArr(DynPidArr* arr, int capacity);
 void PushBackDynPidArr(DynPidArr* arr, pid_t new_pid);
 pid_t* PopBackDynPidArr(DynPidArr* arr);
-void PopPidDynPidArr(DynPidArr* arr, pid_t target);
+// void PopPidDynPidArr(DynPidArr* arr, pid_t target);
 void PopDynPidArrAt(DynPidArr* arr, int index);
 int IndexOfDynPidArr(DynPidArr* arr, pid_t target);
 void DeleteDynPidArr(DynPidArr* arr);

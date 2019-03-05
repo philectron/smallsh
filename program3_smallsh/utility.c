@@ -12,9 +12,49 @@
 
 #include "utility.h"
 #include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+// Redirects the specified source file descriptor to a destination path name,
+// with the provided flags and mode.
+//
+// Arguments:
+//   src_fd         the source file descriptor
+//   dest_pathname  the name of the destination path/file
+//   dest_flags     flags for  open()
+//   dest_mode      mode for  open()
+void RedirectFileDescriptor(int src_fd, char* dest_pathname, int dest_flags,
+                            mode_t dest_mode) {
+    // support stdin and stdout redirection
+    assert(dest_pathname && (src_fd == 0 || src_fd == 1));
+
+    // open a new file descriptor
+    int target_fd = open(dest_pathname, dest_flags, dest_mode);
+    // make sure  open()  was successful
+    if (target_fd == -1) {
+        if (src_fd == 0) {
+            fprintf(stderr, "cannot open %s for stdin\n", dest_pathname);
+        } else if (src_fd == 1) {
+            fprintf(stderr, "cannot open %s for stdout\n", dest_pathname);
+        }
+        exit(1);
+    }
+
+    // redirect the source fd to this new file descriptor
+    int dup2_status = dup2(target_fd, src_fd);
+    // make sure  dup2()  was successful
+    if (dup2_status == -1) {
+        fprintf(stderr, "dup2() failure\n");
+        exit(1);
+    }
+
+    // close on  exec()
+    fcntl(target_fd, F_SETFD, FD_CLOEXEC);
+}
 
 // Dynamically allocates an array of strings structure with the given capacity.
 //
@@ -142,22 +182,22 @@ pid_t* PopBackDynPidArr(DynPidArr* arr) {
     return &(arr->pids[--arr->size]);
 }
 
-// Pops the target PID from the dynamic array. No returns. Does nothing if PID
-// not in array.
-//
-// Argument:
-//   arr  the structure of dynamic array of PIDs
-void PopPidDynPidArr(DynPidArr* arr, pid_t target) {
-    assert(arr);
-
-    for (int i = 0; i < arr->size; i++) {
-        if (arr->pids[i] == target) {
-            // order doesn't matter, so just overwrite with the final PID
-            arr->pids[i] = arr->pids[--arr->size];
-            break;
-        }
-    }
-}
+/* // Pops the target PID from the dynamic array. No returns. Does nothing if PID */
+/* // not in array. */
+/* // */
+/* // Argument: */
+/* //   arr  the structure of dynamic array of PIDs */
+/* void PopPidDynPidArr(DynPidArr* arr, pid_t target) { */
+/*     assert(arr); */
+/*  */
+/*     for (int i = 0; i < arr->size; i++) { */
+/*         if (arr->pids[i] == target) { */
+/*             // order doesn't matter, so just overwrite with the final PID */
+/*             arr->pids[i] = arr->pids[--arr->size]; */
+/*             break; */
+/*         } */
+/*     } */
+/* } */
 
 // Pops the (index)-th PID from the dynamic array. No returns.
 void PopDynPidArrAt(DynPidArr* arr, int index) {

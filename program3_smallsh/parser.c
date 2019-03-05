@@ -44,17 +44,16 @@ char* PromptUser(void) {
     char* cmdline = malloc(MAX_CMDLINE_LEN * sizeof(*cmdline));
     assert(cmdline);  // make sure allocation was successful
 
-    do {
-        // get raw input
-        printf(": ");
-        fflush(stdout);
-        fgets(cmdline, MAX_CMDLINE_LEN, stdin);
+    // get raw input
+    printf(": ");
+    fflush(stdout);
+    fflush(stderr);
+    fgets(cmdline, MAX_CMDLINE_LEN, stdin);
 
-        // remove trailing newline(s)
-        size_t cmdline_len = strlen(cmdline);
-        while (cmdline_len > 0 && cmdline[cmdline_len - 1] == '\n')
-            cmdline[--cmdline_len] = '\0';
-    } while (cmdline[0] == '\0' || cmdline[0] == '#');
+    // remove trailing newline(s)
+    size_t cmdline_len = strlen(cmdline);
+    while (cmdline_len > 0 && cmdline[cmdline_len - 1] == '\n')
+        cmdline[--cmdline_len] = '\0';
 
     return cmdline;
 }
@@ -96,37 +95,34 @@ DynStrArr* SplitCmdLineToWords(char* cmdline) {
 // and outputs their word indices to corresponding parameters.
 //
 // Arguments:
-//   cmdline           a pointer to the string that contains the command line
+//   cmdwords          a pointer to the string that contains the command line
+//   execvp_argv       an array of C strings containing the command and args
+//   execvp_argc       a pointer to the resulting size of  execvp_argv
 //   stdin_redir_idx   a pointer to the word index of the  <  symbol
 //   stdout_redir_idx  a pointer to the word index of the  >  symbol
 //   is_bg             a pointer to a flag, whether the process is backgrounded
 //
+// The words in  cmdwords  will be parsed into  execvp_argv .
+// The size of  execvp_argv  will be held by  execvp_argc .
 // stdin_redir_idx ,  stdout_redir_idx , and  is_bg  will be modified after the
 // function returns.
-//
-// Returns:
-//   An array of C strings containing the command and its arguments from word 0
-//   to the word right before a redirection symbol or the bg symbol. The array
-//   is terminated with a NULL as its last element
-//
-//   NULL if the command is a built-in function
-char** ParseCmdWords(DynStrArr* cmdwords, int* stdin_redir_idx,
-                     int* stdout_redir_idx, bool* is_bg) {
-    assert(cmdwords && cmdwords->size >= 1 && stdin_redir_idx
-           && stdout_redir_idx && is_bg);
+void ParseCmdWords(DynStrArr* cmdwords, char** execvp_argv, int* execvp_argc,
+                   int* stdin_redir_idx, int* stdout_redir_idx, bool* is_bg) {
+    assert(cmdwords && cmdwords->size >= 1 && execvp_argv && execvp_argc
+           && stdin_redir_idx && stdout_redir_idx && is_bg);
 
     // init the output parameters
+    *execvp_argc = 0;
     *stdin_redir_idx = -1;
     *stdout_redir_idx = -1;
     *is_bg = false;
 
-    // check for built-in commands
-    char* cmd = cmdwords->strings[0];
-    if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "status") == 0
-        || strcmp(cmd, "cd") == 0) return NULL;
+    /* // check for built-in commands */
+    /* char* cmd = cmdwords->strings[0]; */
+    /* if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "status") == 0 */
+    /*     || strcmp(cmd, "cd") == 0) return; */
 
     // find the  <  or  >  or trailing  &  symbols;  &  must appear at the end
-    int execvp_len = 0;
     bool execvp_len_done = false;
     for (int i = 0; i < cmdwords->size; i++) {
         // if matches stdin redirection symbol, done with counting words
@@ -146,17 +142,12 @@ char** ParseCmdWords(DynStrArr* cmdwords, int* stdin_redir_idx,
             execvp_len_done = true;
         }
         // otherwise, increase the len of the array to be passed to  execvp()
-        if (!execvp_len_done) execvp_len++;
+        if (!execvp_len_done) (*execvp_argc)++;
     }
 
-    execvp_len++;  // need 1 more slot to contain NULL
-    char** execvp_arr = malloc(execvp_len * sizeof(*execvp_arr));
-    assert(execvp_arr);
-    for (int i = 0; i < execvp_len - 1; i++)
-        execvp_arr[i] = cmdwords->strings[i];  // temp pointer, not hard copy
-    free(execvp_arr[execvp_len - 1]);
-    execvp_arr[execvp_len - 1] = NULL;
-
-    // return an  execvp() -compatible array of C strings
-    return execvp_arr;
+    (*execvp_argc)++;  // need 1 more slot to contain NULL
+    for (int i = 0; i < *execvp_argc - 1; i++)
+        execvp_argv[i] = cmdwords->strings[i];  // temp pointer, not hard copy
+    execvp_argv[*execvp_argc - 1] = NULL;
 }
+

@@ -23,7 +23,7 @@ char* PromptUser(void);
 
 DynStrArr* SplitCmdLineToWords(char* cmdline);
 
-char** ParseCmdWords(DynStrArr* cmdwords, int* stdin_redir_idx,
-                     int* stdout_redir_idx, bool* is_bg);
+void ParseCmdWords(DynStrArr* cmdwords, char** execvp_argv, int* execvp_argc,
+                   int* stdin_redir_idx, int* stdout_redir_idx, bool* is_bg);
 
 #endif  // #ifndef PARSER_H_
